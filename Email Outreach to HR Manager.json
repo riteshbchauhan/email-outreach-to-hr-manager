@@ -1,0 +1,563 @@
+{
+  "name": "Email Outreach to HR Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Email Outreach to HR Manager",
+        "formDescription": "Fill in your details. We will find HR contacts in your city and prepare email drafts with your resume.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Enter Name",
+              "fieldName": "name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Enter Email ID",
+              "fieldType": "email",
+              "fieldName": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Which role are you trying for?",
+              "fieldName": "role",
+              "placeholder": "e.g. AI ML intern",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "What are you looking for?",
+              "fieldType": "dropdown",
+              "fieldName": "job_type",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Internship"
+                  },
+                  {
+                    "option": "Job"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "If internship: paid or unpaid?",
+              "fieldType": "dropdown",
+              "fieldName": "internship_pay",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Paid"
+                  },
+                  {
+                    "option": "Unpaid"
+                  },
+                  {
+                    "option": "Any"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Enter your experience level",
+              "fieldType": "dropdown",
+              "fieldName": "experience",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Fresher"
+                  },
+                  {
+                    "option": "Experienced"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Enter City",
+              "fieldName": "city",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Enter preferable location in city",
+              "fieldName": "preferred_location",
+              "placeholder": "Adajan, Vesu or Whole City"
+            },
+            {
+              "fieldLabel": "Enter your resume link",
+              "fieldName": "resume_link",
+              "placeholder": "google drive link with public access",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Enter your email subject",
+              "fieldName": "email_subject",
+              "placeholder": "Use {company-name} to insert the company name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Enter your email message",
+              "fieldType": "textarea",
+              "fieldName": "email_message",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "path": "email-outreach-hr-manager",
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "Thanks! Your outreach drafts are being prepared in Gmail."
+            }
+          }
+        }
+      },
+      "id": "a7fcb492-fa92-4c3a-9e0d-ec6dfe2c3a02",
+      "name": "Start Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        592,
+        -80
+      ],
+      "webhookId": "36bf71de-1fe0-42c8-9b5a-42b59f2b0275"
+    },
+    {
+      "parameters": {
+        "url": "=https://drive.google.com/uc?export=download&id={{ ($('Start Form').first().json.resume_link.match(/[-\\w]{25,}/) || [''])[0] }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "resume"
+            }
+          }
+        }
+      },
+      "id": "b226ff9d-d75b-466c-aba4-21667a9c1fe8",
+      "name": "Download Resume PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        784,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const f = $('Start Form').first().json;\nconst roleRaw = String(f.role).trim();\nconst isIntern = String(f.job_type).toLowerCase().indexOf('intern') >= 0;\nlet pay = 'any';\npay = String(f.internship_pay || 'any').toLowerCase();\nconst role = isIntern && !/intern/i.test(roleRaw) ? roleRaw + ' internship' : roleRaw;\nconst city = String(f.city).trim();\nconst areaRaw = String(f.preferred_location || '').trim();\nconst level = String(f.experience).toLowerCase().indexOf('fresher') >= 0 ? 'freshers' : 'experienced';\nconst wholeCity = !areaRaw || /whole\\s*city|entire\\s*city|all\\s*city|^all$|^any/i.test(areaRaw);\nconst areas = wholeCity ? [] : areaRaw.split(/[,;\\/]+/).map(a => a.trim()).filter(Boolean);\nconst hire = ['hiring', 'vacancy', 'jobs', 'openings', 'careers', 'walk-in interview', 'recruitment'];\nconst contact = ['HR email', 'HR manager contact email', 'careers email', 'send resume to email', 'HR contact number and email'];\nconst sectors = ['IT company', 'software company', 'startup', 'manufacturing company', 'textile company', 'finance company', 'trading company', 'marketing agency', 'private limited company', 'CA firm', 'export house', 'real estate company'];\nconst set = new Set();\nconst add = q => set.add(q.replace(/\\s+/g, ' ').trim());\nconst places = wholeCity ? [city] : areas.map(a => a + ' ' + city);\nfor (const place of places) {\n  for (const h of hire) add(role + ' ' + h + ' ' + place);\n  for (const c of contact) add(role + ' ' + c + ' ' + place);\n  add(role + ' ' + level + ' ' + place + ' 2026');\n  if (isIntern && pay === 'paid') add(role + ' stipend paid ' + place);\n  add('companies in ' + place + ' HR email careers');\n  add(place + ' company list with contact email');\n}\nadd(role + ' jobs in ' + city + ' for ' + level);\nadd('top companies in ' + city + ' hiring ' + role + ' contact email');\nif (wholeCity) {\n  for (const sec of sectors) {\n    add(sec + ' ' + city + ' hiring ' + role + ' HR email');\n    add('top ' + sec + 's in ' + city + ' careers contact email');\n    add(sec + ' ' + city + ' ' + role + ' vacancy ' + level);\n  }\n  add(role + ' ' + city + ' industrial area companies HR email');\n  add(role + ' ' + city + ' walk-in interview HR contact');\n}\nconst queries = Array.from(set).slice(0, 150);\nreturn queries.map(q => ({ json: { query: q } }));"
+      },
+      "id": "10b11d70-59a6-4051-aa2b-93f84726ee36",
+      "name": "Build Search Queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "MapSearch",
+        "operation": "search",
+        "query": "={{ $json.query }}",
+        "limit": 15,
+        "requestOptions": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1500
+            }
+          }
+        }
+      },
+      "id": "ce2bf47e-6b2f-4579-82a5-42e1d5c9e264",
+      "name": "Search Web",
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        -80
+      ],
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "firecrawlApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i => {\n  const web = (i.json.data && i.json.data.web) || [];\n  return { json: { searchText: JSON.stringify(web).slice(0, 30000) } };\n}).filter(i => i.json.searchText.length > 10);"
+      },
+      "id": "7e0b9650-518a-4980-923b-7b9d1367ecbd",
+      "name": "Prepare Search Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.searchText }}",
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\"companies\":[{\"company_name\":\"Example Technologies\",\"hr_email\":\"hr@exampletech.com\",\"email_type\":\"public\",\"five_day_week\":\"yes\",\"paid_internship\":\"yes\",\"stipend_info\":\"Rs 10,000/month\",\"source_url\":\"https://exampletech.com/careers\"}]}",
+        "options": {
+          "systemPromptTemplate": "You extract hiring leads from web search results. Return only companies based in or hiring in the city mentioned in the search queries that likely have roles or internships matching the searched role. For each company give: company_name, hr_email, email_type, five_day_week, paid_internship, stipend_info, source_url. For regular job searches (not internships) set paid_internship to \"unknown\" and leave stipend_info empty unless a salary is stated. For internship searches, paid_internship is \"yes\" only if the text mentions a stipend or paid internship, \"no\" only if it says unpaid, otherwise \"unknown\"; stipend_info quotes the amount or is empty. hr_email must be an address that appears in the text (email_type \"public\"). If the company website domain is clearly known but no email is listed, you may guess one common address for that company (email_type \"guessed\"): use careers@<domain> if the text mentions a careers or jobs page, otherwise hr@<domain>; career@<domain> is also acceptable. Never invent a domain. Skip companies without a known domain or email. five_day_week is \"yes\" only if the text says a 5-day working week, otherwise \"unknown\". Skip companies that explicitly say 6 days working. Skip job boards and consultancies without a real company. Deduplicate by company. Return every qualifying company you can find, up to 40."
+        }
+      },
+      "id": "d2ec7d98-8866-4ead-ae71-40df8cb1fb52",
+      "name": "Extract Companies and HR Emails",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        1664,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-6.1-terra"
+        },
+        "responsesApiEnabled": false,
+        "options": {
+          "temperature": 1
+        }
+      },
+      "id": "5c3efe19-31d6-4ac4-bb8d-f336e35d373c",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1664,
+        112
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.companies",
+        "options": {}
+      },
+      "id": "6b10517d-5ead-4a94-b635-9e12843b2907",
+      "name": "Split Companies",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "valid-email",
+              "leftValue": "={{ $json.hr_email }}",
+              "rightValue": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "df638601-4879-4115-8acd-f63a5397d385",
+      "name": "Keep Valid Emails",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        2240,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const f = $('Start Form').first().json;\nconst isIntern = String(f.job_type).toLowerCase().indexOf('intern') >= 0;\nlet pay = 'any';\npay = String(f.internship_pay || 'any').toLowerCase();\nconst seen = new Set();\nconst rows = [];\nfor (const i of $input.all()) {\n  const j = i.json;\n  const email = String(j.hr_email).trim().toLowerCase();\n  if (seen.has(email)) continue;\n  if (isIntern && pay === 'paid' && j.paid_internship === 'no') continue;\n  if (isIntern && pay === 'unpaid' && j.paid_internship === 'yes') continue;\n  seen.add(email);\n  rows.push({ company_name: j.company_name, hr_email: email, email_type: j.email_type, five_day_week: j.five_day_week, paid_internship: j.paid_internship || 'unknown', stipend_info: j.stipend_info || '', source_url: j.source_url });\n}\nconst rank = r => (isIntern && pay !== 'unpaid' && r.paid_internship === 'yes' ? 0 : 1) + (r.email_type === 'public' ? 0 : 0.5);\nrows.sort((a, b) => rank(a) - rank(b));\nreturn rows.slice(0, 100).map((r, idx) => ({ json: Object.assign({ no: idx + 1 }, r) }));"
+      },
+      "id": "3e4ac8a4-5c89-465b-bcac-8657c9c3e273",
+      "name": "Prepare Rows with Resume",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst esc = v => '\"' + String(v == null ? '' : v).replace(/\"/g, '\"\"') + '\"';\nconst csv = ['No,Company Name,HR Email,Email Type,Paid Internship,Stipend Info,Five Day Week,Source URL'].concat(items.map(r => [r.json.no, r.json.company_name, r.json.hr_email, r.json.email_type, r.json.paid_internship, r.json.stipend_info, r.json.five_day_week, r.json.source_url].map(esc).join(','))).join('\\n');\nconst file = await this.helpers.prepareBinaryData(Buffer.from(csv, 'utf8'), 'surat-ai-ml-companies.csv', 'text/csv');\nconst resume = $('Download Resume PDF').first().binary.resume;\nreturn items.map(i => ({ json: i.json, binary: { csvfile: file, resume } }));"
+      },
+      "id": "c434bce3-1823-414b-b1d6-9e7942d2adc7",
+      "name": "Create CSV File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2656,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $('Start Form').first().json.email_subject.replace(/\\{\\s*company[\\s_-]*(name)?\\s*\\}/gi, () => $('Prepare Rows with Resume').item.json.company_name) }}",
+        "message": "={{ $('Start Form').first().json.email_message.replace(/\\{\\s*company[\\s_-]*(name)?\\s*\\}/gi, () => $('Prepare Rows with Resume').item.json.company_name) }}",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "resume"
+              }
+            ]
+          },
+          "sendTo": "={{ $('Prepare Rows with Resume').item.json.hr_email }}"
+        }
+      },
+      "id": "e254d69e-c4f1-494d-bb1f-5acb92dc502b",
+      "name": "Create Internship Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2880,
+        -80
+      ],
+      "webhookId": "e6492f28-7639-44cc-ab31-ed930c463d02",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yEE4mdr0J7ynD714",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $('Prepare Rows with Resume').all();\nconst results = $input.all();\nlet sent = 0;\nlet failed = 0;\nconst lines = rows.map((r, idx) => {\n  const res = results[idx] ? results[idx].json : {};\n  const ok = !!res.id && !res.error;\n  if (ok) sent++; else failed++;\n  const status = ok ? 'DRAFTED' : 'FAILED';\n  return '<tr><td>' + r.json.no + '</td><td>' + r.json.company_name + '</td><td>' + r.json.hr_email + '</td><td>' + r.json.paid_internship + (r.json.stipend_info ? ' (' + r.json.stipend_info + ')' : '') + '</td><td><b>' + status + '</b></td></tr>';\n});\nconst html = '<p>Outreach drafts created in Gmail (nothing sent yet).</p><p>Total: ' + rows.length + ' | Drafted: ' + sent + ' | Failed: ' + failed + '</p>' +\n  '<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\"><tr><th>No</th><th>Company</th><th>HR Email</th><th>Paid?</th><th>Status</th></tr>' + lines.join('') + '</table>' +\n  '<p>Note: \"guessed\" addresses may bounce. Check your Gmail inbox for delivery failure notices.</p>';\nreturn [{ json: { total: rows.length, sent, failed, html }, binary: { data: $('Create CSV File').first().binary.csvfile } }];"
+      },
+      "id": "6f6508e6-ce5f-454f-a5cd-0fefc44f436a",
+      "name": "Build Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3104,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Outreach drafts: {{ $json.sent }} created, {{ $json.failed }} failed",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "data"
+              }
+            ]
+          },
+          "sendTo": "={{ $('Start Form').first().json.email }}"
+        }
+      },
+      "id": "aae2beda-315d-4de6-bcfe-e78b5d980369",
+      "name": "Create Summary Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        3296,
+        -80
+      ],
+      "webhookId": "5f08d8cf-232a-46ab-b70b-2c8a37919a62",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yEE4mdr0J7ynD714",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start Form": {
+      "main": [
+        [
+          {
+            "node": "Download Resume PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Resume PDF": {
+      "main": [
+        [
+          {
+            "node": "Build Search Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Search Queries": {
+      "main": [
+        [
+          {
+            "node": "Search Web",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Web": {
+      "main": [
+        [
+          {
+            "node": "Prepare Search Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Search Text": {
+      "main": [
+        [
+          {
+            "node": "Extract Companies and HR Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Companies and HR Emails": {
+      "main": [
+        [
+          {
+            "node": "Split Companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Companies and HR Emails",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Companies": {
+      "main": [
+        [
+          {
+            "node": "Keep Valid Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Valid Emails": {
+      "main": [
+        [
+          {
+            "node": "Prepare Rows with Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Rows with Resume": {
+      "main": [
+        [
+          {
+            "node": "Create CSV File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create CSV File": {
+      "main": [
+        [
+          {
+            "node": "Create Internship Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Internship Draft": {
+      "main": [
+        [
+          {
+            "node": "Build Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary": {
+      "main": [
+        [
+          {
+            "node": "Create Summary Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9157d5a8-0fb5-467a-8045-1147aff6e5d5",
+  "meta": {
+    "instanceId": "c59702ab0b0fb0af23c3945217a3691db48c8d2ce2e6b68ca2c6c5bab1777a4c"
+  },
+  "nodeGroups": [],
+  "id": "QOCoTBi1KLUA0drg",
+  "tags": []
+}
