@@ -110,8 +110,6 @@ Compiles an HTML table showing every company processed, stipend details, and dra
 
    * Fill out your details, submit the form, and check your Gmail **Drafts** folder once execution completes!
 
-|  |  | 
-
 ## ⚠️ Best Practices & Notes
 
 * **Review Before Sending:** This workflow intentionally creates **Drafts** rather than sending emails automatically. Always review guessed email addresses (`hr@domain.com` or `careers@domain.com`) and personalize your pitch before sending.
